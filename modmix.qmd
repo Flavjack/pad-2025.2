@@ -1,7 +1,9 @@
 ---
 title: "modelos lineales mixtos"
 author: "Flavio Lozano-Isla"
-format: html
+format: 
+  html:
+    output-file: index.html
 editor_options: 
   chunk_output_type: console
 ---
@@ -59,6 +61,58 @@ Anova(md)
 
 ```
 
+#> full chatgtp
 
+```{r}
+library(lme4)
+library(emmeans)
+library(multcomp)
+library(multcompView)
+library(ggplot2)
+library(dplyr)
 
+# Modelo mixto
+md <- lmer(twue ~ 0 + (1|bloque) + riego*geno, data = fb)
+
+# ANOVA tipo II o III según interés
+library(car)
+Anova(md, type = 3)
+```
+
+```{r}
+# Medias ajustadas para la interacción riego:geno
+emm <- emmeans(md, ~ riego:geno)
+
+# Comparación de medias con ajuste de Tukey
+comp <- pairs(emm, adjust = "tukey")
+
+# Generación de letras de significancia
+letras <- multcomp::cld(emm, adjust = "tukey", Letters = letters)
+letras
+
+```
+
+```{r}
+# Limpieza del data frame con letras
+letras_df <- letras %>%
+  as.data.frame() %>%
+  mutate(riego = factor(riego, levels = unique(fb$riego)),
+         geno = factor(geno, levels = unique(fb$geno)))
+
+```
+
+```{r}
+ggplot(letras_df, aes(x = geno, y = emmean, fill = riego)) +
+  geom_col(position = position_dodge(width = 0.8)) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE),
+                width = 0.2, position = position_dodge(width = 0.8)) +
+  geom_text(aes(label = .group, y = emmean + SE + 0.05),
+            position = position_dodge(width = 0.8),
+            size = 4, vjust = 0) +
+  labs(x = "Genotipos", y = "TWUE (eficiencia del uso del agua total)",
+       fill = "Riego") +
+  theme_classic(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
 
