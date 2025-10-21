@@ -1,0 +1,64 @@
+---
+title: "modelos lineales mixtos"
+author: "Flavio Lozano-Isla"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+# Pasos para análisis de datos
+
+1. Crear mi diseño experimental => modelo estadistico
+2. Colectar los datos
+3. Importar y verificar los factores
+4. Analisis de Variancia (aov() o lm())
+5. Comparación de medias
+6. Gráfico
+
+# librerias
+
+```{r}
+library(tidyverse)
+library(googlesheets4)
+library(lme4)
+library(emmeans)
+```
+
+# Cargar base de datos
+
+https://docs.google.com/spreadsheets/d/15r7ZwcZZHbEgltlF6gSFvCTFA-CFzVBWwg3mFlRyKPs/edit?gid=1263018298#gid=1263018298
+
+```{r}
+url <- "https://docs.google.com/spreadsheets/d/15r7ZwcZZHbEgltlF6gSFvCTFA-CFzVBWwg3mFlRyKPs/edit?gid=1263018298#gid=1263018298"
+
+gs <- url %>% 
+  as_sheets_id()
+
+fb <- gs %>% 
+  range_read("fb") %>% 
+  mutate(across(1:bloque, ~as.factor(.)))
+
+str(fb)
+```
+
+# Modelo
+
+$$  wue_{tuber} = \mu + bloque + riego + geno + riego*geno + e  $$
+
+# Análisis de variancia
+
+```{r}
+md <- lmer(formula = twue ~ 0 + (1|bloque) + riego*geno
+           , data = fb)
+
+anova(md)
+
+library(car)
+
+Anova(md)
+
+```
+
+
+
+
