@@ -108,11 +108,19 @@ ggplot(letras_df, aes(x = geno, y = emmean, fill = riego)) +
                 width = 0.2, position = position_dodge(width = 0.8)) +
   geom_text(aes(label = .group, y = emmean + SE + 0.05),
             position = position_dodge(width = 0.8),
-            size = 4, vjust = 0) +
+            size = 3, vjust = 0, angle = 90) +
   labs(x = "Genotipos", y = "TWUE (eficiencia del uso del agua total)",
        fill = "Riego") +
   theme_classic(base_size = 14) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+library(inti)
+
+letras_df %>% 
+  plot_smr(x = "geno", y = "emmean", group = "riego"
+           , error = "SE", sig = ".group")
 
 ```
 
