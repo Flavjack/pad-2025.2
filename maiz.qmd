@@ -1,0 +1,113 @@
+---
+title: "maiz"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+# Cargar paquetes
+
+```{r}
+library(tidyverse)
+library(googlesheets4)
+library(lme4)
+library(emmeans)
+library(FactoMineR)
+library(multcomp)
+library(car)
+library(cowplot)
+```
+
+# Importar base de datos
+
+```{r}
+url <- "https://docs.google.com/spreadsheets/d/1o4mtAkI1lBgoUzqDT-e7cIhIwh_K5m6CoxAx0ETvwXU/edit?gid=1753270824#gid=1753270824"
+
+gs <- url %>% 
+  as_sheets_id()
+
+fb <- gs %>% 
+  range_read("fb") %>% 
+  mutate(across(c(tratamientos:bloque), factor))
+
+str(fb)
+```
+
+# Modelo estadistico
+
+$$ rendimiento = \mu + bloque + procinaza + densidad + procinza*densidad + e$$
+
+# Boxplot
+
+Con la base de datos fb hacer un grafico boxplot donde en el eje x incluir niveles de porcinaza agrupados por densidad para la variable rendiminto_g_ha
+
+```{r}
+ggplot(fb, aes(x = porcinaza, y = rendiminto_g_ha, fill = densidad)) +
+  geom_boxplot() 
+
+```
+
+# ANOVA mazorcas_p
+
+Hacer el análisis de variancia y mostrame la tabla de ANOVA para la variable mazorcas_p en un diseño en bloques completos al azar para la interacción de los factores: densidad	y porcinaza
+
+```{r}
+modelo_mazorcas <- lmer(mazorcas_p ~ densidad * porcinaza + (1 | bloque), data = fb)
+
+Anova(modelo_mazorcas)
+```
+
+Del modelo hacer la comparación de medias usando el paquete emmeans y colocar las letras de significancia estadistica
+
+```{r}
+emmeans_mazorcas <- emmeans(modelo_mazorcas, ~ densidad * porcinaza) %>% 
+cld(., Letters = letters)
+
+```
+
+De la tabla de comparación de medias emmeans_mazorcas, realizar una gráfico de barras con la barra de error y la significnacia. Poner porcinaza en el eje x agrupado por densidad. 
+
+```{r}
+ggplot(emmeans_mazorcas, aes(x = porcinaza, y = emmean, fill = densidad)) +
+  geom_col(position = position_dodge()) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), position = position_dodge(0.9), width = 0.2) +
+  geom_text(aes(label = .group, y = emmean + SE), position = position_dodge(0.9), vjust = -0.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.4)))
+```
+
+
+# Análisis multivariado
+
+De la base datos fb, hacer un PCA agrupado por densidad y porcinaza usando el paquete FactoMineR
+
+```{r}
+dtmv <- fb %>%
+  group_by(porcinaza, densidad) %>%
+  summarise(across(where(is.numeric)
+                   , ~ mean(., na.rm = T))) %>% 
+  unite("trat", c(porcinaza, densidad), remove = F) %>% 
+  column_to_rownames("trat")
+  
+pca <- PCA(X = dtmv, scale.unit = T
+           , quali.sup = c(1, 2))  
+  
+var <- plot(pca, choix = "var")
+ind <- plot(pca, choix = "ind")
+
+list(var, ind) %>% 
+  plot_grid(plotlist = ., ncol = 2, labels = "auto")
+```
+
+```{r}
+library(GGally)
+
+ggplot(dtmv, aes(x = NULL, y = NULL)) + geom_blank() + theme_void()
+
+ggcorr(dtmv %>% dplyr::select(where(is.numeric)))
+```
+
+
+
+
+
+
